@@ -25,15 +25,30 @@
  *
  * Offset 0xfc (bytes 252..255) contains the required 32-bit CRC32-MPEG2 checksum
  * (0x7a4eb274 in little-endian: 0x74, 0xb2, 0x4e, 0x7a).
+ *
+ * [source: docs/rp2040.pdf "2.8.1.3 Flash Second Stage"]
+ * [source: docs/rp2040.pdf "2.8.1.3.1 Checksum"]
+ * [source: docs/hw.pdf "2.8 Flash Selection"]
+ * [source: examples/pico-sdk/src/rp2040/boot_stage2/boot2_w25q080.S]
+ * [source: examples/pico-sdk/src/rp2040/pico_platform/script_include/section_boot2.incl]
  */
 
     .syntax unified
     .cpu cortex-m0plus
     .thumb
 
+    /* Sector header: .boot2 marked Allocatable ("a") & Executable ("x")
+     * [source: docs/rp2040.pdf "2.8.1.3 Flash Second Stage"]
+     * [source: examples/pico-sdk/src/rp2040/pico_platform/script_include/section_boot2.incl]
+     */
     .section .boot2, "ax"
     .global boot2_raw
 boot2_raw:
+    /* 256-byte compiled machine code payload for Winbond W25Q080 QSPI Flash Stage 2 Bootloader
+     * [source: docs/rp2040.pdf "2.8.1.3 Flash Second Stage"]
+     * [source: docs/hw.pdf "2.8 Flash Selection"]
+     * [source: examples/pico-sdk/src/rp2040/boot_stage2/boot2_w25q080.S]
+     */
     .byte 0x00, 0xb5, 0x32, 0x4b, 0x21, 0x20, 0x58, 0x60
     .byte 0x98, 0x68, 0x02, 0x21, 0x88, 0x43, 0x98, 0x60
     .byte 0xd8, 0x60, 0x18, 0x61, 0x58, 0x61, 0x2e, 0x4b
@@ -65,4 +80,10 @@ boot2_raw:
     .byte 0xf4, 0x00, 0x00, 0x18, 0x22, 0x20, 0x00, 0xa0
     .byte 0x00, 0x01, 0x00, 0x10, 0x08, 0xed, 0x00, 0xe0
     .byte 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+    /* Offset 0xfc: 32-bit CRC32-MPEG2 checksum (0x7a4eb274 in little-endian: 0x74, 0xb2, 0x4e, 0x7a)
+     * Calculated over preceding 252 bytes of boot code using polynomial x^32 + x^26 + x^23 + x^22 + x^16 + x^12 + x^11 + x^10 + x^8 + x^7 + x^5 + x^4 + x^2 + x + 1.
+     * [source: docs/rp2040.pdf "2.8.1.3.1 Checksum"]
+     * [source: examples/pico-sdk/src/rp2040/boot_stage2/boot2_w25q080.S]
+     */
     .byte 0x00, 0x00, 0x00, 0x00, 0x74, 0xb2, 0x4e, 0x7a
+

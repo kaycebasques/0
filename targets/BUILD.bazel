@@ -1,10 +1,21 @@
 package(default_visibility = ["//visibility:public"])
 
+# Target Platform Definition for Raspberry Pi Pico (RP2040 Microcontroller)
+# [source: docs/rp2040.pdf "1.2 Summary of Features"]
+# [source: docs/dui0662b.pdf "1.1 About the processor"]
+# [source: examples/bazel/targets/rp2/BUILD.bazel]
 platform(
     name = "rp2040",
     constraint_values = [
+        # Bare-metal target OS constraint (no operating system)
+        # [source: docs/rp2040.pdf "1.2 Summary of Features"]
         "@platforms//os:none",
+        # ARMv6-M CPU Architecture constraint for Cortex-M0+
+        # [source: docs/dui0662b.pdf "1.1 About the processor"]
         "@platforms//cpu:armv6-m",
+        # Pigweed Cortex-M0 compiler selection constraint
+        # [source: examples/bazel/targets/rp2/BUILD.bazel]
         "@pigweed//pw_build/constraints/arm:cortex-m0",
     ],
 )
+

@@ -7,6 +7,7 @@ load("@rules_cc//cc:defs.bzl", "cc_binary")
 package(default_visibility = ["//visibility:public"])
 
 # Build target for the raw ELF executable binary.
+# [source: examples/pico-sdk/bazel/util/pico_linker_scripts.bzl]
 cc_binary(
     name = "app.elf",
     srcs = [
@@ -24,7 +25,9 @@ cc_binary(
     ],
 )
 
-# Convert compiled ELF binary into USB Flashing Format (UF2) expected by RP2040 bootrom & Wokwi.
+# Convert compiled ELF binary into USB Flashing Format (UF2) expected by RP2040 bootrom & Wokwi simulator.
+# [source: docs/rp2040.pdf "2.8.4.2 UF2 Format Details"]
+# [source: examples/pico-sdk/src/common/boot_uf2_headers/include/boot/uf2.h]
 genrule(
     name = "app_uf2",
     srcs = [":app.elf"],
@@ -36,15 +39,17 @@ import sys, struct
 # Read compiled ELF file
 data = open("$(location :app.elf)", "rb").read()
 
-# Parse ELF32 header: phoff = Program Header Offset, phnum = Number of Program Headers
+# Parse ELF32 header: phoff = Program Header Offset (offset 28), phnum = Number of Program Headers (offset 44)
 phoff, phnum = struct.unpack("<IH", data[28:32] + data[44:46])[0], struct.unpack("<H", data[44:46])[0]
 
-# Microsoft UF2 File Format Specifications
-UF2_MAGIC_START0 = 0x0A324655
-UF2_MAGIC_START1 = 0x9E5D5157
-UF2_MAGIC_END     = 0x0AB16F30
-RP2040_FAMILY_ID = 0xE48BFF56
-UF2_FLAG_FAMILY_ID_PRESENT = 0x00002000
+# Microsoft UF2 (USB Flashing Format) Specifications for RP2040 Bootrom
+# [source: docs/rp2040.pdf "2.8.4.2 UF2 Format Details"]
+# [source: examples/pico-sdk/src/common/boot_uf2_headers/include/boot/uf2.h]
+UF2_MAGIC_START0           = 0x0A324655 # First magic number identifying a 512-byte UF2 block
+UF2_MAGIC_START1           = 0x9E5D5157 # Second magic number identifying a 512-byte UF2 block
+UF2_MAGIC_END             = 0x0AB16F30 # Final 4-byte footer magic number
+RP2040_FAMILY_ID           = 0xE48BFF56 # Official RP2040 Chip Family Identifier
+UF2_FLAG_FAMILY_ID_PRESENT = 0x00002000 # Flag bit indicating block header contains Family ID
 
 payload_blocks = []
 for i in range(phnum):
@@ -62,18 +67,22 @@ for i in range(phnum):
             payload_blocks.append((addr, chunk))
 
 # Package payloads into standard 512-byte UF2 blocks
+# [source: docs/rp2040.pdf "2.8.4.2 UF2 Format Details"]
+# [source: examples/pico-sdk/src/common/boot_uf2_headers/include/boot/uf2.h]
 num_blocks = len(payload_blocks)
 uf2_out = bytearray()
 for block_no, (addr, chunk) in enumerate(payload_blocks):
     chunk_padded = chunk + b"\\x00" * (256 - len(chunk))
-    # 32-byte UF2 Header
+    # 32-byte UF2 Header Layout:
+    #   magicStart0 (4B), magicStart1 (4B), flags (4B), targetAddr (4B),
+    #   payloadSize (4B), blockNo (4B), numBlocks (4B), familyID (4B)
     hdr = struct.pack("<IIIIIIII",
         UF2_MAGIC_START0, UF2_MAGIC_START1, UF2_FLAG_FAMILY_ID_PRESENT,
         addr, 256, block_no, num_blocks, RP2040_FAMILY_ID
     )
     # 4-byte UF2 Footer Magic
     ftr = struct.pack("<I", UF2_MAGIC_END)
-    # Total block size: 32 bytes header + 476 bytes payload space (256 data + padding) + 4 bytes footer = 512 bytes
+    # Total block size: 32 bytes header + 476 bytes payload space (256 data + 220 padding) + 4 bytes footer = 512 bytes
     block_512 = hdr + chunk_padded + b"\\x00" * (476 - 256) + ftr
     uf2_out.extend(block_512)
 
@@ -81,3 +90,4 @@ open("$@", "wb").write(uf2_out)
 '
 """,
 )
+

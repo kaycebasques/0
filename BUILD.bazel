@@ -1,11 +1,16 @@
 package(default_visibility = ["//visibility:public"])
 
+# Alias target for default build product (app.uf2 flash image)
+# [source: docs/rp2040.pdf "2.8.4.2 UF2 Format Details"]
 alias(
     name = "app",
     actual = "//src:app_uf2",
 )
 
+# Alias target for compiled ARM Cortex-M0+ ELF binary
+# [source: examples/bazel/apps/blinky/BUILD.bazel]
 alias(
     name = "app.elf",
     actual = "//src:app.elf",
 )
+
