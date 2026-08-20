@@ -1,18 +1,37 @@
+# ============================================================================
+# BAZEL MODULE DEFINITION (Bzlmod) FOR PICO SDK EXAMPLE
+# ============================================================================
+#
+# Bzlmod is Bazel's external dependency management system. External libraries
+# (like pico-sdk and pigweed) are fetched hermetically from Bazel Central Registry (BCR).
+
 module(
     name = "wokwi_example",
 )
 
+# Fetch official Raspberry Pi Pico SDK module from Bazel Central Registry
 bazel_dep(name = "pico-sdk", version = "2.0.0")
+
+# Fetch Google Pigweed embedded libraries & hermetic compiler toolchains
 bazel_dep(name = "pigweed")
+
+# Standard Bazel platform definitions (CPU architectures, OS targets)
 bazel_dep(name = "platforms", version = "0.0.10")
+
+# C/C++ compilation rules for Bazel
 bazel_dep(name = "rules_cc", version = "0.0.17")
 
+# Override default pigweed dependency to pin to a specific verified git commit
 git_override(
     module_name = "pigweed",
     commit = "c0def160076d3502e9b78c8c7a274f1fd60907be",
     remote = "https://pigweed.googlesource.com/pigweed/pigweed",
 )
 
+# Register hermetic LLVM/GCC cross-compilation toolchains provided by Pigweed:
+#   - cortex-m0: Target toolchain for RP2040 (ARMv6-M)
+#   - cortex-m33: Target toolchain for RP2350 (ARMv8-M)
+#   - host_cc_toolchain: Host toolchains used to compile host generator utilities (e.g. picotool)
 register_toolchains(
     "@pigweed//pw_toolchain:cc_toolchain_cortex-m0",
     "@pigweed//pw_toolchain:cc_toolchain_cortex-m33",

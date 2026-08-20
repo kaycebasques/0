@@ -1,11 +1,26 @@
+# ============================================================================
+# BAZEL TARGET PLATFORM DEFINITION FOR RP2040
+# ============================================================================
+#
+# In Bazel, a `platform` is a collection of `constraint_values` that define the
+# target architecture, OS, hardware family, and CPU model.
+#
+# When you invoke `bazel build --platforms=//targets:rp2040`, Bazel's toolchain
+# resolution mechanism matches these constraints against registered toolchains
+# and automatically selects Pigweed's hermetic Cortex-M0+ cross-compiler.
+
 package(default_visibility = ["//visibility:public"])
 
 platform(
     name = "rp2040",
     constraint_values = [
+        # Target chip family: Raspberry Pi RP2040
         "@pico-sdk//bazel/constraint:rp2040",
+        # Bare-metal operating system target (no OS kernel / freestanding environment)
         "@platforms//os:none",
+        # CPU Architecture: 32-bit ARMv6-M Thumb instruction set architecture
         "@platforms//cpu:armv6-m",
+        # Microprocessor Core constraint: ARM Cortex-M0+
         "@pigweed//pw_build/constraints/arm:cortex-m0",
     ],
 )

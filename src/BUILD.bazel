@@ -1,18 +1,27 @@
+# ============================================================================
+# BAZEL BUILD TARGETS FOR BARE-METAL RP2040 APP
+# ============================================================================
+
 load("@rules_cc//cc:defs.bzl", "cc_binary")
 
 package(default_visibility = ["//visibility:public"])
 
+# Build target for the raw ELF executable binary.
 cc_binary(
     name = "app.elf",
     srcs = ["main.c"],
     additional_linker_inputs = ["linker.ld"],
     linkopts = [
+        # Pass custom bare-metal linker script to GNU ld / LLVM lld
         "-T$(location linker.ld)",
+        # Do not link standard C runtime libraries (crt0.o, libc) as we operate bare-metal
         "-nostdlib",
+        # Enable linker section garbage collection to remove dead/unused code
         "-Wl,--gc-sections",
     ],
 )
 
+# Convert compiled ELF binary into USB Flashing Format (UF2) expected by RP2040 bootrom & Wokwi.
 genrule(
     name = "app_uf2",
     srcs = [":app.elf"],
@@ -21,9 +30,13 @@ genrule(
 python3 -c '
 import sys, struct
 
+# Read compiled ELF file
 data = open("$(location :app.elf)", "rb").read()
+
+# Parse ELF32 header: phoff = Program Header Offset, phnum = Number of Program Headers
 phoff, phnum = struct.unpack("<IH", data[28:32] + data[44:46])[0], struct.unpack("<H", data[44:46])[0]
 
+# Microsoft UF2 File Format Specifications
 UF2_MAGIC_START0 = 0x0A324655
 UF2_MAGIC_START1 = 0x9E5D5157
 UF2_MAGIC_END     = 0x0AB16F30
@@ -33,23 +46,31 @@ UF2_FLAG_FAMILY_ID_PRESENT = 0x00002000
 payload_blocks = []
 for i in range(phnum):
     off = phoff + i * 32
+    # Parse 32-byte Elf32_Phdr struct: type, offset, vaddr (RAM VMA), paddr (FLASH LMA), filesz, memsz
     p_type, p_offset, p_vaddr, p_paddr, p_filesz, p_memsz = struct.unpack("<IIIIII", data[off:off+24])
+    
+    # PT_LOAD segments (p_type == 1) contain flashable binary data
     if p_type == 1 and p_filesz > 0:
         seg_data = data[p_offset:p_offset+p_filesz]
         for b_off in range(0, len(seg_data), 256):
             chunk = seg_data[b_off:b_off+256]
+            # Use LMA (p_paddr) so loadable sections (.data) map to target FLASH memory addresses
             addr = p_paddr + b_off
             payload_blocks.append((addr, chunk))
 
+# Package payloads into standard 512-byte UF2 blocks
 num_blocks = len(payload_blocks)
 uf2_out = bytearray()
 for block_no, (addr, chunk) in enumerate(payload_blocks):
     chunk_padded = chunk + b"\\x00" * (256 - len(chunk))
+    # 32-byte UF2 Header
     hdr = struct.pack("<IIIIIIII",
         UF2_MAGIC_START0, UF2_MAGIC_START1, UF2_FLAG_FAMILY_ID_PRESENT,
         addr, 256, block_no, num_blocks, RP2040_FAMILY_ID
     )
+    # 4-byte UF2 Footer Magic
     ftr = struct.pack("<I", UF2_MAGIC_END)
+    # Total block size: 32 bytes header + 476 bytes payload space (256 data + padding) + 4 bytes footer = 512 bytes
     block_512 = hdr + chunk_padded + b"\\x00" * (476 - 256) + ftr
     uf2_out.extend(block_512)
 

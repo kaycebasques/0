@@ -1,13 +1,28 @@
+# ============================================================================
+# BAZEL CONFIGURATION (.bazelrc) FOR PICO SDK BARE-METAL BUILD
+# ============================================================================
+
+# Enforce explicit init.py in Python rules
 common --incompatible_default_to_explicit_init_py
+
+# Disable local host C++ compiler autodetection (e.g. host /usr/bin/gcc).
+# This forces Bazel to use Pigweed's hermetic toolchain for all builds.
 common --repo_env=BAZEL_DO_NOT_DETECT_CPP_TOOLCHAIN=1
+
+# Exclude execution configuration defines/flags to prevent unnecessary cache invalidations
 common --experimental_exclude_defines_from_exec_config
 common --experimental_exclude_starlark_flags_from_exec_config
 build --incompatible_strict_action_env
 
+# Print detailed error messages on failure
 common --verbose_failures
 
+# Silence compiler warnings (-w) for external third-party libraries (e.g. pico-sdk code)
 common --per_file_copt=external/.*@-w
 common --host_per_file_copt=external/.*@-w
 
+# Default build target platform set to RP2040 (RP2040 ARM Cortex-M0+)
 build --platforms=//targets:rp2040
+
+# Specific build config aliases
 build:rp2040 --platforms=//targets:rp2040

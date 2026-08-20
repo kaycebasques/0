@@ -1,15 +1,22 @@
+# ============================================================================
+# BAZEL BUILD TARGETS FOR PICO SDK EXAMPLE
+# ============================================================================
+
 load("@rules_cc//cc:defs.bzl", "cc_binary")
 
 package(default_visibility = ["//visibility:public"])
 
+# Build target for compiled ELF binary using Pico SDK stdlib library target.
 cc_binary(
     name = "app.elf",
     srcs = ["main.c"],
     deps = [
+        # Pulls in Pico SDK standard library (gpio, time, runtime init, boot2, interrupts)
         "@pico-sdk//src/rp2_common/pico_stdlib:pico_stdlib",
     ],
 )
 
+# Convert ELF binary into USB Flashing Format (UF2) expected by RP2040 bootrom & Wokwi.
 genrule(
     name = "app_uf2",
     srcs = [":app.elf"],
@@ -18,9 +25,13 @@ genrule(
 python3 -c '
 import sys, struct
 
+# Read compiled ELF file
 data = open("$(location :app.elf)", "rb").read()
+
+# Parse ELF32 header offset tables
 phoff, phnum = struct.unpack("<IH", data[28:32] + data[44:46])[0], struct.unpack("<H", data[44:46])[0]
 
+# UF2 Constant Magic Values & RP2040 Family ID
 UF2_MAGIC_START0 = 0x0A324655
 UF2_MAGIC_START1 = 0x9E5D5157
 UF2_MAGIC_END     = 0x0AB16F30
@@ -30,15 +41,19 @@ UF2_FLAG_FAMILY_ID_PRESENT = 0x00002000
 payload_blocks = []
 for i in range(phnum):
     off = phoff + i * 32
+    # Parse Elf32_Phdr: type, offset, vaddr, paddr (LMA), filesz, memsz
     p_type, p_offset, p_vaddr, p_paddr, p_filesz, p_memsz = struct.unpack("<IIIIII", data[off:off+24])
+    
+    # PT_LOAD segments (p_type == 1) contain binary data meant for flash memory
     if p_type == 1 and p_filesz > 0:
         seg_data = data[p_offset:p_offset+p_filesz]
         for b_off in range(0, len(seg_data), 256):
             chunk = seg_data[b_off:b_off+256]
-            # Use LMA (p_paddr) so loadable sections (.data) are flashed to FLASH memory
+            # Use LMA (p_paddr) so loadable sections (.data) map to target FLASH memory addresses
             addr = p_paddr + b_off
             payload_blocks.append((addr, chunk))
 
+# Build 512-byte UF2 blocks
 num_blocks = len(payload_blocks)
 uf2_out = bytearray()
 for block_no, (addr, chunk) in enumerate(payload_blocks):
@@ -56,6 +71,7 @@ open("$@", "wb").write(uf2_out)
 """,
 )
 
+# Root target alias for convenience
 alias(
     name = "app",
     actual = ":app_uf2",
