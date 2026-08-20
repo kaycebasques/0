@@ -2,21 +2,16 @@
 
 #define REG(addr) (*(volatile uint32_t *)(addr))
 
-/* RP2040 Hardware Register Addresses */
-#define RESETS_BASE       0x4000c000u
-#define IO_BANK0_BASE     0x40014000u
-#define PADS_BANK0_BASE   0x4001c000u
-#define SIO_BASE          0xd0000000u
-
-#define RESETS_RESET_CLR  REG(RESETS_BASE + 0x3000)
-#define RESETS_WD_DONE    REG(RESETS_BASE + 0x08)
-
-#define SIO_GPIO_OUT_XOR  REG(SIO_BASE + 0x0028)
-#define SIO_GPIO_OE_SET   REG(SIO_BASE + 0x0038)
+/* RP2040 Peripheral Base Addresses */
+#define RESETS_BASE     0x4000c000u
+#define IO_BANK0_BASE   0x40014000u
+#define PADS_BANK0_BASE 0x4001c000u
+#define SIO_BASE        0xd0000000u
+#define PPB_BASE        0xe0000000u
 
 #define LED_PIN 25
 
-/* RP2040 Boot Stage 2 Header (256-byte checksummed sector required by RP2040 bootrom) */
+/* RP2040 Boot Stage 2 Header (256-byte checksummed sector) */
 __attribute__((section(".boot2"), used))
 const uint8_t boot2_raw[256] = {
     0x03, 0x48, 0x03, 0x49, 0x08, 0x60, 0x06, 0xc8,
@@ -64,19 +59,23 @@ void (* const vector_table[2])(void) = {
 };
 
 void Reset_Handler(void) {
-    /* 1. Unreset IO_BANK0 (bit 5) and PADS_BANK0 (bit 8) on RP2040 */
-    uint32_t mask = (1u << 5) | (1u << 8);
-    RESETS_RESET_CLR = mask;
-    while ((RESETS_WD_DONE & mask) != mask) {}
+    /* 1. Set Main Stack Pointer & SCB VTOR */
+    __asm__ volatile ("msr msp, %0" : : "r" (&__stack_top));
+    REG(PPB_BASE + 0xed08) = (uint32_t)vector_table;
 
-    /* 2. Configure GPIO 25 pad (Enable input/output) and set function to SIO (5) */
-    REG(PADS_BANK0_BASE + 4u * LED_PIN + 4u) = (1u << 6);
+    /* 2. Unreset all peripherals directly (write 0 to RESETS_RESET) */
+    REG(RESETS_BASE + 0x00) = 0x00000000;
+
+    /* 3. Configure GPIO 25 pad: 8mA drive, Schmitt trigger, IE=1, OD=0 (0x56) */
+    REG(PADS_BANK0_BASE + 4u * LED_PIN + 4u) = 0x56;
+
+    /* 4. Set GPIO 25 function to SIO (5) */
     REG(IO_BANK0_BASE + 8u * LED_PIN + 4u) = 5;
-    SIO_GPIO_OE_SET = (1u << LED_PIN);
 
-    /* 3. Blink onboard LED using busy-wait loop */
-    while (1) {
-        SIO_GPIO_OUT_XOR = (1u << LED_PIN);
-        for (volatile int i = 0; i < 50000; i++) {}
-    }
+    /* 5. Enable SIO GPIO 25 Output and drive HIGH */
+    REG(SIO_BASE + 0x0038) = (1u << LED_PIN); /* SIO_GPIO_OE_SET */
+    REG(SIO_BASE + 0x0018) = (1u << LED_PIN); /* SIO_GPIO_OUT_SET */
+
+    /* 6. Infinite loop (keep LED ON solidly) */
+    while (1) {}
 }

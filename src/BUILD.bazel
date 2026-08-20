@@ -3,7 +3,7 @@ load("@rules_cc//cc:defs.bzl", "cc_binary")
 package(default_visibility = ["//visibility:public"])
 
 cc_binary(
-    name = "app",
+    name = "app.elf",
     srcs = ["main.c"],
     additional_linker_inputs = ["linker.ld"],
     linkopts = [
@@ -11,4 +11,49 @@ cc_binary(
         "-nostdlib",
         "-Wl,--gc-sections",
     ],
+)
+
+genrule(
+    name = "app_uf2",
+    srcs = [":app.elf"],
+    outs = ["app.uf2"],
+    cmd = """
+python3 -c '
+import sys, struct
+
+data = open("$(location :app.elf)", "rb").read()
+phoff, phnum = struct.unpack("<IH", data[28:32] + data[44:46])[0], struct.unpack("<H", data[44:46])[0]
+
+UF2_MAGIC_START0 = 0x0A324655
+UF2_MAGIC_START1 = 0x9E5D5157
+UF2_MAGIC_END     = 0x0AB16F30
+RP2040_FAMILY_ID = 0xE48BFF56
+UF2_FLAG_FAMILY_ID_PRESENT = 0x00002000
+
+payload_blocks = []
+for i in range(phnum):
+    off = phoff + i * 32
+    p_type, p_offset, p_vaddr, p_paddr, p_filesz, p_memsz = struct.unpack("<IIIIII", data[off:off+24])
+    if p_type == 1 and p_filesz > 0:
+        seg_data = data[p_offset:p_offset+p_filesz]
+        for b_off in range(0, len(seg_data), 256):
+            chunk = seg_data[b_off:b_off+256]
+            addr = p_vaddr + b_off
+            payload_blocks.append((addr, chunk))
+
+num_blocks = len(payload_blocks)
+uf2_out = bytearray()
+for block_no, (addr, chunk) in enumerate(payload_blocks):
+    chunk_padded = chunk + b"\\x00" * (256 - len(chunk))
+    hdr = struct.pack("<IIIIIIII",
+        UF2_MAGIC_START0, UF2_MAGIC_START1, UF2_FLAG_FAMILY_ID_PRESENT,
+        addr, 256, block_no, num_blocks, RP2040_FAMILY_ID
+    )
+    ftr = struct.pack("<I", UF2_MAGIC_END)
+    block_512 = hdr + chunk_padded + b"\\x00" * (476 - 256) + ftr
+    uf2_out.extend(block_512)
+
+open("$@", "wb").write(uf2_out)
+'
+""",
 )

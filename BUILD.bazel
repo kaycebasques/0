@@ -2,5 +2,10 @@ package(default_visibility = ["//visibility:public"])
 
 alias(
     name = "app",
-    actual = "//src:app",
+    actual = "//src:app_uf2",
+)
+
+alias(
+    name = "app.elf",
+    actual = "//src:app.elf",
 )

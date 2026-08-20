@@ -1,3 +1,6 @@
 # Bazel output directories
 bazel-*
 .bazelrc.user
+build/
+app.elf
+app.uf2

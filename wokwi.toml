@@ -1,5 +1,5 @@
 [wokwi]
 version = 1
-elf = "bazel-bin/src/app"
-firmware = "bazel-bin/src/app"
+firmware = "build/app.elf"
+elf = "build/app.elf"
 gdbServerPort = 3333
