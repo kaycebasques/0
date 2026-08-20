@@ -1,0 +1,24 @@
+[submodule "examples/bazel"]
+	path = examples/bazel
+	url = https://pigweed.googlesource.com/pigweed/quickstart/bazel
+[submodule "examples/pico-sdk"]
+	path = examples/pico-sdk
+	url = https://github.com/raspberrypi/pico-sdk.git
+[submodule "examples/pico-examples"]
+	path = examples/pico-examples
+	url = https://github.com/raspberrypi/pico-examples.git
+[submodule "examples/rp-hal"]
+	path = examples/rp-hal
+	url = https://github.com/rp-rs/rp-hal.git
+[submodule "examples/rp2040-pac"]
+	path = examples/rp2040-pac
+	url = https://github.com/rp-rs/rp2040-pac.git
+[submodule "examples/embedded-hal"]
+	path = examples/embedded-hal
+	url = https://github.com/rust-embedded/embedded-hal.git
+[submodule "examples/cortex-m"]
+	path = examples/cortex-m
+	url = https://github.com/rust-embedded/cortex-m.git
+[submodule "examples/pigweed"]
+	path = examples/pigweed
+	url = https://pigweed.googlesource.com/pigweed/pigweed
