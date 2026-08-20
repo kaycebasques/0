@@ -35,7 +35,8 @@ for i in range(phnum):
         seg_data = data[p_offset:p_offset+p_filesz]
         for b_off in range(0, len(seg_data), 256):
             chunk = seg_data[b_off:b_off+256]
-            addr = p_vaddr + b_off
+            # Use LMA (p_paddr) so loadable sections (.data) are flashed to FLASH memory
+            addr = p_paddr + b_off
             payload_blocks.append((addr, chunk))
 
 num_blocks = len(payload_blocks)
