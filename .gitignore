@@ -1,0 +1,3 @@
+# Bazel output directories
+bazel-*
+.bazelrc.user

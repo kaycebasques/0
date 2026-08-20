@@ -1,0 +1,18 @@
+module(
+    name = "baremetal_pico",
+)
+
+bazel_dep(name = "pigweed")
+bazel_dep(name = "platforms", version = "0.0.10")
+bazel_dep(name = "rules_cc", version = "0.0.17")
+
+git_override(
+    module_name = "pigweed",
+    commit = "c0def160076d3502e9b78c8c7a274f1fd60907be",
+    remote = "https://pigweed.googlesource.com/pigweed/pigweed",
+)
+
+register_toolchains(
+    "@pigweed//pw_toolchain:cc_toolchain_cortex-m0",
+    dev_dependency = True,
+)

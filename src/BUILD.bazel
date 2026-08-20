@@ -1,0 +1,14 @@
+load("@rules_cc//cc:defs.bzl", "cc_binary")
+
+package(default_visibility = ["//visibility:public"])
+
+cc_binary(
+    name = "app",
+    srcs = ["main.c"],
+    additional_linker_inputs = ["linker.ld"],
+    linkopts = [
+        "-T$(location linker.ld)",
+        "-nostdlib",
+        "-Wl,--gc-sections",
+    ],
+)

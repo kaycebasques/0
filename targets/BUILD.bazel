@@ -1,0 +1,10 @@
+package(default_visibility = ["//visibility:public"])
+
+platform(
+    name = "rp2040",
+    constraint_values = [
+        "@platforms//os:none",
+        "@platforms//cpu:armv6-m",
+        "@pigweed//pw_build/constraints/arm:cortex-m0",
+    ],
+)

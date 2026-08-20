@@ -1,0 +1,9 @@
+common --incompatible_default_to_explicit_init_py
+common --repo_env=BAZEL_DO_NOT_DETECT_CPP_TOOLCHAIN=1
+common --experimental_exclude_defines_from_exec_config
+common --experimental_exclude_starlark_flags_from_exec_config
+build --incompatible_strict_action_env
+
+common --verbose_failures
+
+build:rp2040 --platforms=//targets:rp2040
