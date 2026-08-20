@@ -9,7 +9,10 @@ package(default_visibility = ["//visibility:public"])
 # Build target for the raw ELF executable binary.
 cc_binary(
     name = "app.elf",
-    srcs = ["main.c"],
+    srcs = [
+        "boot2.S",
+        "main.c",
+    ],
     additional_linker_inputs = ["linker.ld"],
     linkopts = [
         # Pass custom bare-metal linker script to GNU ld / LLVM lld

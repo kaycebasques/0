@@ -8,7 +8,9 @@
       "id": "pico",
       "top": 0,
       "left": 0,
-      "attrs": {}
+      "attrs": {
+        "builder": "pico-sdk"
+      }
     }
   ],
   "connections": []
