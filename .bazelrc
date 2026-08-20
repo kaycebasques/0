@@ -6,4 +6,8 @@ build --incompatible_strict_action_env
 
 common --verbose_failures
 
+# Set default target platform to RP2040 so `bazelisk build //:app` works without --config
+build --platforms=//targets:rp2040
+
 build:rp2040 --platforms=//targets:rp2040
+build:rp2350 --platforms=//targets:rp2350
