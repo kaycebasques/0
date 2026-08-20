@@ -1,0 +1,11 @@
+package(default_visibility = ["//visibility:public"])
+
+platform(
+    name = "rp2040",
+    constraint_values = [
+        "@pico-sdk//bazel/constraint:rp2040",
+        "@platforms//os:none",
+        "@platforms//cpu:armv6-m",
+        "@pigweed//pw_build/constraints/arm:cortex-m0",
+    ],
+)
