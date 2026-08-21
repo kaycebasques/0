@@ -1,11 +1,4 @@
 /**
- * @file main.c
- * @brief Bare-Metal RP2040 Firmware Implementation & Architecture Reference.
- *
- * ============================================================================
- * EMBEDDED CONCEPTS FOR SOFTWARE ENGINEERS
- * ============================================================================
- *
  * 1. MEMORY-MAPPED I/O (MMIO) & ATOMIC ALIASES:
  *    Microcontrollers do not use system calls to talk to hardware. Peripherals
  *    are mapped into memory space starting at 0x40000000.

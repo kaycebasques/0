@@ -2,8 +2,6 @@
  * RP2040 BOOT STAGE 2 SECTOR (.boot2)
  * ============================================================================
  *
- * EMBEDDED CONCEPTS FOR SOFTWARE ENGINEERS:
- *
  * Why a Separate Assembly (.S) File?
  * In C, global `const uint8_t data[]` arrays are placed in read-only data sections
  * marked with section flag "a" (Allocatable). However, ARM Cortex-M processors and
